@@ -4,3 +4,28 @@ body {
   padding: 1em;
   background-color: lightblue;
 }
+
+.option-check-box {
+    display: inline-block;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    border: 2px solid black;
+    text-align: center;
+    margin: 0.25rem;
+    color: black;
+    line-height: 0;
+}
+
+.option-check-box-unchecked {
+    background-color: #fff;
+}
+
+.option-check-box-unchecked:focus, .option-check-box-unchecked:hover {
+    background-color: #eee;
+}
+
+.option-check-box-checked {
+    color: white;
+    background-color: #555;
+}

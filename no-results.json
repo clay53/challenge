@@ -1,0 +1,44 @@
+{
+  "questions": [
+      {
+          "prompt": "Slowly, over time, have your parents stopped saying your name and started calling you by generic names like \"champ\", \"kiddo\", \"disappointment\", or \"buddy\"?",
+          "options": {
+              "A": "They usually say my name two to five times every sentence to make sure they don't forget it.",
+              "B": "When I call, they tell me to 'hold on, I need to check your birth certificate.'",
+              "C": "They usually ask me if I'm calling the wrong number."
+          }
+      },
+      {
+          "prompt": "When was the last time your parents expressed disappointment in you?",
+          "options": {
+              "A": "Never. I am a paradigm of human excellence.",
+              "B": "The third time they caught me in a compromising position with a peach.",
+              "D": "When I called them over the phone sobbing, telling them that I miss them and wish they were a larger presence in my life."
+          }
+      },
+      {
+          "prompt": "How much of your childhood trauma stems specifically from the way your parents raised you?",
+          "options": {
+              "A": "T-trauma? Who has that? Ha. Hahahahahahahahah-",
+              "C": "Let's not talk about it.",
+              "D": "I was raised as an upstanding, moral individual thanks to the occasional spanking."
+          }
+      },
+      {
+          "prompt": "Do you often dream of your mother giving you a nice, warm sponge bath, as if your brain is craving maternal comfort?",
+          "options": {
+              "B": "No, I do not dream because I cannot fall asleep at night because I worry that my parents hate me.",
+              "D": " I'm allergic to sponges, so this is not a dream, but a nightmare."
+          }
+      },
+      {
+          "prompt": "If you do not call your parents, will they ever call you?",
+          "options": {
+              "D": "No."
+          }
+      }
+  ],
+  "results": [
+  ]
+}
+

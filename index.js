@@ -1,7 +1,12 @@
 console.log('----index.js working correctly----')
 
+/**
+ * @typedef {{questions: {prompt: string, options: Object.<string, string>}[], results: string[]}} UTBQuizData
+ */
+
 // this is the questions data that you should use, feel free to change the questions data
 // for testing purpose
+/** @type {UTBQuizData} */
 const data = {
   questions: [
       {
@@ -68,3 +73,273 @@ const data = {
 }
 
 // Write your code below...
+
+class UTBQuiz extends HTMLElement {
+    /** @type {boolean} */
+    #rendered = false;
+
+    /** @type{UTBQuizData} */
+    #data;
+
+    /** @type{HTMLDivElement} */
+    #questionsDiv;
+
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        // ensure if element is moved it doesn't try to remake itself. I know it's not necessary for this example, but I thought it would be good to demonstrate reusability
+        if (this.rendered) {
+            console.log("already rendered");
+            return;
+        }
+        console.log("rendering...");
+        this.#rendered = true;
+
+        // Get data
+
+        const dataSourceAttr = this.getAttribute("data-source");
+        if (dataSourceAttr === "built-in" || dataSourceAttr === null) {
+            this.#data = data;
+            this.#onData();
+        } else {
+            const xhr = new XMLHttpRequest();
+            try {
+                xhr.onload = () => {
+                    if (xhr.status !== 200) {
+                        let msg = `Bad quiz data response: ${xhr.statusText} (${xhr.status}): ${xhr.responseText}`;
+                        console.error(msg, xhr);
+                        this.replaceChildren(document.createTextNode(msg));
+                        return;
+                    }
+                    try {
+                        const data = JSON.parse(xhr.response);
+                        this.#data = data;
+                    } catch (error) {
+                        let msg = `Failed to parse data because ${error}`;
+                        console.error (msg, error);
+                        this.replaceChildren(document.createTextNode(msg));
+                    }
+                    this.#onData();
+                }
+                xhr.open("GET", dataSourceAttr);
+                xhr.send();
+            } catch (error) {
+                const msg = `Failed to get quiz data from ${dataSourceAttr} because ${error}`;
+                console.error(msg, error);
+                this.replaceChildren(document.createTextNode(msg));
+            }
+        }
+    }
+
+    #onData() {
+        // bonus types
+        /**
+         * @typedef{Object} QuestionDivExt
+         * @property {HTMLButtonElement} optionsDiv
+         * @typedef {HTMLButtonElement & QuestionDivExt} QuestionDiv
+         */
+
+        /**
+         * @typedef{Object} OptionDivExt
+         * @property {HTMLButtonElement} optionCheckBox
+         * @typedef {HTMLButtonElement & OptionDivExt} OptionDiv
+         */
+
+        // Render questions 
+
+        this.#questionsDiv = document.createElement("div");
+
+        for (let questionIndex = 0; questionIndex < this.#data.questions.length; questionIndex++) {
+            const question = this.#data.questions[questionIndex];
+            /** @type {QuestionDiv} */
+            const questionDiv = document.createElement("div");
+
+            const questionHeader = document.createElement("h2");
+            questionHeader.innerText = `${questionIndex+1}. ${question.prompt}`;
+
+            questionDiv.optionsDiv = document.createElement("div");
+
+            /**
+             * @function
+             * @param {number} targetOptionIndex
+             */
+            function selectOptionByIndex(targetOptionIndex) {
+                for (let currentOptionIndex = 0; currentOptionIndex < questionDiv.optionsDiv.children.length; currentOptionIndex++) {
+                    /** @type(OptionDiv) */
+                    const optionDiv = questionDiv.optionsDiv.children[currentOptionIndex];
+                    
+                    if (currentOptionIndex !== targetOptionIndex) {
+                        // class list functions are idempotent - no need to check if checked already or not
+                        optionDiv.optionCheckBox.classList.remove("option-check-box-checked");
+                        optionDiv.optionCheckBox.classList.add("option-check-box-unchecked");
+                    } else {
+                        // class list functions are idempotent - no need to check if checked already or not
+                        optionDiv.optionCheckBox.classList.remove("option-check-box-unchecked");
+                        optionDiv.optionCheckBox.classList.add("option-check-box-checked");
+                    }
+                }
+                tryCalculateResults();
+            }
+
+            const optionsKeys = Object.keys(question.options);
+            for (let optionIndex = 0; optionIndex < optionsKeys.length; optionIndex++) {
+                const optionKey = optionsKeys[optionIndex];
+
+                // construct OptionDiv
+                /** @type{OptionDiv} */
+                const optionDiv = document.createElement("div");
+
+                optionDiv.optionCheckBox = document.createElement("button");
+                optionDiv.optionCheckBox.innerText = optionKey;
+                optionDiv.optionCheckBox.classList.add("option-check-box");
+                optionDiv.optionCheckBox.classList.add("option-check-box-unchecked");
+                optionDiv.optionCheckBox.addEventListener('click', () => {
+                    selectOptionByIndex(optionIndex);
+                });
+                
+                const optionDescriptionP = document.createElement("span");
+                optionDescriptionP.innerText = question.options[optionKey];
+
+                // Render optionDiv
+                optionDiv.replaceChildren(optionDiv.optionCheckBox, optionDescriptionP);
+
+                // Linearly render optionsDiv
+                questionDiv.optionsDiv.appendChild(optionDiv);
+            }
+
+            questionDiv.replaceChildren(questionHeader, questionDiv.optionsDiv);
+
+            this.#questionsDiv.appendChild(questionDiv);
+        }
+
+        const showButton = document.createElement("button");
+        /** @type{"disabled"|"notShowing"|"showing"} */
+        let showButtonState = "disabled";
+        showButton.disabled = true;
+        if (this.#data.questions.length > 0) {
+            showButton.innerText = "No questions have been answered";
+        } else {
+            showButton.innerText = "This quiz has no questions?!";
+        }
+        const notShowingMsg = "Click to show results";
+
+        const resultP = document.createElement("p");
+
+        const tryCalculateResults = () => {
+            if (showButtonState === "showing") {
+                return null;
+            }
+            const optionCounts = [];
+            const unansweredQuestions = [];
+            for (let questionIndex = 0; questionIndex < this.#questionsDiv.children.length; questionIndex++) {
+                /** @type {QuestionDiv} */
+                const questionDiv = this.#questionsDiv.children[questionIndex];
+                let chosenOptionIndex = null;
+                for (let optionIndex = 0; optionIndex < questionDiv.optionsDiv.children.length; optionIndex++) {
+                    /** @type{OptionDiv} */
+                    const optionDiv = questionDiv.optionsDiv.children[optionIndex];
+                    if (optionDiv.optionCheckBox.classList.contains("option-check-box-checked")) {
+                        chosenOptionIndex = optionIndex;
+                        break;
+                    }
+                }
+                if (chosenOptionIndex === null) {
+                    unansweredQuestions.push(questionIndex);
+                    continue;
+                }
+                if (optionCounts[chosenOptionIndex] === undefined) {
+                    optionCounts[chosenOptionIndex] = 1; // may leave empty slots - remember to handle properly when reading
+                } else {
+                    optionCounts[chosenOptionIndex]++;
+                }
+            }
+            if (unansweredQuestions.length > 0) {
+                if (unansweredQuestions.length === 1) {
+                    showButton.innerText = `Question ${unansweredQuestions[0]+1} is unanswered`;
+                } else if (unansweredQuestions.length === 2) {
+                    showButton.innerText = `Questions ${unansweredQuestions[0]+1} and ${unansweredQuestions[1]+1} are unanswered`;
+                } else {
+                    let msg = `Questions ${unansweredQuestions[0]+1}`;
+                    for (let i = 1; i < unansweredQuestions.length-1; i++) {
+                        msg += `, ${unansweredQuestions[i]+1}`;
+                    }
+                    msg += `, and ${unansweredQuestions[unansweredQuestions.length-1]+1} are unanswered`;
+                    showButton.innerText = msg;
+                }
+                return null;
+            }
+            if (optionCounts.length === 0) {
+                return null;
+            }
+            let maxIndex = -1;
+            let maxCount = 0;
+            for (let i = 0; i < optionCounts.length; i++) {
+                const count = optionCounts[i];
+                if (count === undefined) {
+                    continue;
+                }
+                if (count > maxCount) {
+                    maxIndex = i;
+                    maxCount = count;
+                }
+            }
+            if (showButtonState === "disabled") {
+                showButtonState = "notShowing";
+                showButton.innerText = notShowingMsg;
+                showButton.disabled = false;
+            }
+            return maxIndex;
+        }
+
+
+        showButton.addEventListener('click', () => {
+            if (showButtonState === "disabled") {
+                return;
+            }
+            if (showButtonState === "notShowing") {
+                const resultIndex = tryCalculateResults();
+                if (typeof(resultIndex) !== "number") {
+                    return;
+                }
+                const resultText = this.#data.results[resultIndex];
+                if (resultText === undefined) {
+                    const error = `Result index ${resultIndex} is not in data's results. Is the data malformed?`;
+                    console.error(error);
+                    alert(error);
+                    return;
+                }
+                resultP.innerText = resultText;
+
+                // disable options buttons
+                for (const questionDiv of this.#questionsDiv.children) {
+                    for (const optionDiv of /** @type {HTMLCollectionOf<OptionDiv>} */ (questionDiv.optionsDiv.children)) {
+                        optionDiv.optionCheckBox.disabled = true;
+                    }
+                }
+
+                showButtonState = "showing";
+                showButton.innerText = "Retake Quiz";
+            } else if (showButtonState === "showing") {
+                // no need to recalculate results because can't change while showing
+                
+                // reenable options buttons
+                for (const questionDiv of this.#questionsDiv.children) {
+                    for (const optionDiv of /** @type {HTMLCollectionOf<OptionDiv>} */ (questionDiv.optionsDiv.children)) {
+                        optionDiv.optionCheckBox.disabled = false;
+                    }
+                }
+
+                // hide result
+                resultP.innerText = "";
+
+                showButtonState = "notShowing";
+                showButton.innerText = notShowingMsg;
+            }
+        });
+
+        this.replaceChildren(this.#questionsDiv, showButton, resultP);
+    }
+}
+customElements.define("utb-quiz", UTBQuiz);
