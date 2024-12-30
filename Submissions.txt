@@ -1,7 +1,22 @@
 1. How many hours did you spend on this challenge?
+It took me about 3.75 hours
 
 2. Describe the features you have implemented.
+ * Can load quiz data from the given index.js file or a web link
+ * Everything is contained in reusable web component (except CSS)
+ * Can only select 1 option per question at a time
+ * Detailed reports about quiz completion in finish button
+ * Finish button only enables when quiz is filled out
+ * Can't unfill out the quiz
+ * Can't change answers while quiz result is showing
+ * Shows correct quiz result
+ * Can retake quiz
 
 3. Describe the difficulties you faced (if any) while working on the challenge and how you tackled them.
+ * I Started at ~midnight. I tackled this problem by checking my solution repeatedly to ensure I'm not halucinating.
+ * I got hung up on the partial rehydration part a bit. I tackled it by putting all the rehydration into the tryCalculateResult function and then tackling the results showing on click part.
+ * I also haven't used JSDoc in a bit, so I had to look up some syntax and mess with it for longer than I probably should have.
+ * I just installed a new OS on this computer, so I had to install and setup some LSPs and change some environment settings along the way.
 
 4. How much time can you spend each week working for DP Developers?
+I could spend about 5 hours a week.
